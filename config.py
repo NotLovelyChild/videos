@@ -9,7 +9,6 @@ import pathlib
 import urllib3
 import http
 import selenium
-import _thread
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36'
@@ -49,65 +48,24 @@ def getHTTP():
     return data[random.randint(0, len(data) - 1)]
 
 
-def getHTTPS():
-    data = []
-    try:
-        with open('https.json', 'r') as file_obj:
-            data = json.load(file_obj)
-            file_obj.close
-    except IOError:
-        print('IO error')
-    return data[random.randint(0, len(data) - 1)]
+# def getHTTPS():
+#     data = []
+#     try:
+#         with open('https.json', 'r') as file_obj:
+#             data = json.load(file_obj)
+#             file_obj.close
+#     except IOError:
+#         print('IO error')
+#     return data[random.randint(0, len(data) - 1)]
 
-
-def loadHttpProxy():
-    ips = []
-    for i in range(1, 10):
-        url = 'https://www.xicidaili.com/wt/' + str(i)
-        soup = requestUrlWithChrome(url)
-        ip_list = soup.select('#ip_list')
-        if len(ip_list):
-            odd = ip_list[0].select('.odd')
-            for o in odd:
-                td = o.select('td')
-                if len(td):
-                    ip = td[1].text
-                    port = td[2].text
-                    d = {'http': 'http://' + ip + ':' + port}
-                    ips.append(d)
-                    print(d)
-    with open('http.json', 'w') as file_obj:
-        json.dump(ips, file_obj)
-        print("写入json文件：")
-        file_obj.close
-
-    ips = []
-    for i in range(1, 10):
-        url = 'https://www.xicidaili.com/wn/' + str(i)
-        soup = requestUrlWithChrome(url)
-        ip_list = soup.select('#ip_list')
-        if len(ip_list):
-            odd = ip_list[0].select('.odd')
-            for o in odd:
-                td = o.select('td')
-                if len(td):
-                    ip = td[1].text
-                    port = td[2].text
-                    d = {'https': 'https://' + ip + ':' + port}
-                    ips.append(d)
-                    print(d)
-    with open('https.json', 'w') as file_obj:
-        json.dump(ips, file_obj)
-        print("写入json文件：")
-        file_obj.close
-
-
-def requestUrl(url, https=False):
+def requestUrl(url, is_proxies=False):
     while True:
         try:
             requests.packages.urllib3.disable_warnings()
-            requestManager = requests.get(url, headers=headers, verify=False,
-                                          proxies=getHTTPS() if https else getHTTP())
+            if is_proxies:
+                requestManager = requests.get(url, headers=headers, verify=False, proxies=getHTTP())
+            else:
+                requestManager = requests.get(url, headers=headers, verify=False)
             requestManager.encoding = None
             return BeautifulSoup(requestManager.text, 'html.parser')
         except requests.exceptions.ConnectionError:
@@ -143,7 +101,7 @@ def requestUrlWithChrome(url):
             return
 
 
-def downloadFile(savePath='', filePath='', fileName='', minSize=0, isHTTPS=False):
+def downloadFile(savePath='', filePath='', fileName='', minSize=0):
     # 判断文件名是否存在
     if not len(fileName):
         fileName = filePath.split("/")[-1]
@@ -158,12 +116,7 @@ def downloadFile(savePath='', filePath='', fileName='', minSize=0, isHTTPS=False
         return
     # 开始下载
     try:
-        if isHTTPS:
-            proxies = getHTTPS()
-        else:
-            proxies = getHTTP()
-        with closing(requests.get(filePath, headers=headers, stream=True, proxies=proxies, timeout=5)) as response:
-            #		with closing(requests.get(filePath,headers=Config.headers,stream=True)) as response:
+        with closing(requests.get(filePath, headers=headers, stream=True, proxies=getHTTP(), timeout=5)) as response:
             chunk_size = 1024  # 单次请求最大值
             try:
                 content_size = int(response.headers['content-length'])  # 内容体总大小
@@ -182,7 +135,7 @@ def downloadFile(savePath='', filePath='', fileName='', minSize=0, isHTTPS=False
                         data_count = data_count + len(data)
                         now_jd = (data_count / content_size) * 100
                         print("\r Downloading progress ：%d%%(%.2fkb/%.2fkb) - %s" % (
-                        now_jd, data_count / 1024.0, content_size / 1024.0, fileName), end=" ")
+                            now_jd, data_count / 1024.0, content_size / 1024.0, fileName), end=" ")
                     file.close
             except IOError:
                 print("IO Error\n")
@@ -216,3 +169,11 @@ def downloadFile(savePath='', filePath='', fileName='', minSize=0, isHTTPS=False
         print('requests.exceptions.ConnectionError')
     finally:
         pass
+
+
+def alertInfo(str):
+    print('\033[1;32m%s\033[0m' % str)
+
+
+def alertError(str):
+    print('\033[1;41m%s\033[0m' % str)

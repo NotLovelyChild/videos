@@ -10,6 +10,7 @@ import requests
 import traceback
 import threadpool
 from Crypto.Cipher import AES
+import shutil
 
 headers = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
@@ -23,7 +24,7 @@ headers = {
 # m3u8链接批量输入文件(必须是utf-8编码)
 m3u8InputFilePath = "m3u8_input.txt"
 # 设置视频保存路径
-saveRootDirPath = "/Users/chenzhe/PycharmProjects/m3u8"
+saveRootDirPath = "/Users/chenzhe/Downloads"
 # 下载出错的m3u8保存文件
 errorM3u8InfoDirPath = "error.txt"
 # m3u8文件、key文件下载尝试次数，ts流默认无限次尝试下载，直到成功
@@ -271,16 +272,16 @@ def printProcessBar(sumCount, doneCount, width, isPrintDownloadSpeed=False):
     if isPrintDownloadSpeed:
         # downloadSpeed的单位是B/s, 超过1024*1024转换为MiB/s, 超过1024转换为KiB/s
         if downloadSpeed > 1048576:
-            print('\r\t{0}/{1} {2}{3} {4:.2f}% {5:>7.2f}MiB/s'.format(sumCount, doneCount, useCount * '■', spaceCount * '□', precent, downloadSpeed / 1048576),
+            print('\r\t{0}/{1} ({2}{3}) {4:.2f}% {5:>7.2f}MiB/s'.format(sumCount, doneCount, useCount * '>', spaceCount * '-', precent, downloadSpeed / 1048576),
                   file=sys.stdout, flush=True, end='')
         elif downloadSpeed > 1024:
-            print('\r\t{0}/{1} {2}{3} {4:.2f}% {5:>7.2f}KiB/s'.format(sumCount, doneCount, useCount * '■', spaceCount * '□', precent, downloadSpeed / 1024),
+            print('\r\t{0}/{1} ({2}{3}) {4:.2f}% {5:>7.2f}KiB/s'.format(sumCount, doneCount, useCount * '>', spaceCount * '-', precent, downloadSpeed / 1024),
                   file=sys.stdout, flush=True, end='')
         else:
-            print('\r\t{0}/{1} {2}{3} {4:.2f}% {5:>7.2f}B/s  '.format(sumCount, doneCount, useCount * '■', spaceCount * '□', precent, downloadSpeed),
+            print('\r\t{0}/{1} ({2}{3}) {4:.2f}% {5:>7.2f}B/s  '.format(sumCount, doneCount, useCount * '>', spaceCount * '-', precent, downloadSpeed),
                   file=sys.stdout, flush=True, end='')
     else:
-        print('\r\t{0}/{1} {2}{3} {4:.2f}%'.format(sumCount, doneCount, useCount*'■', spaceCount*'□', precent), file=sys.stdout, flush=True, end='')
+        print('\r\t{0}/{1} ({2}{3}) {4:.2f}%'.format(sumCount, doneCount, useCount*'>', spaceCount*'-', precent), file=sys.stdout, flush=True, end='')
 
 # m3u8下载器
 def m3u8VideoDownloader():
@@ -352,6 +353,11 @@ def m3u8VideoDownloader():
 
 
 if __name__ == '__main__':
+    args = sys.argv
+    saveRootDirPath += ('/%s' % args[1])
+    if not os.path.exists(saveRootDirPath):
+        os.mkdir(saveRootDirPath)
+
     # 判断m3u8文件是否存在
     if not (os.path.exists(m3u8InputFilePath)):
         print("{0}文件不存在！".format(m3u8InputFilePath))
@@ -406,3 +412,4 @@ if __name__ == '__main__':
     m3u8InputFp.close()
     errorM3u8InfoFp.close()
     print("----------------下载结束------------------")
+    shutil.rmtree(cachePath)
